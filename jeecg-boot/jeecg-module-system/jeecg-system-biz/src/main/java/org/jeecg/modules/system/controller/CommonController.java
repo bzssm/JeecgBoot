@@ -343,4 +343,56 @@ public class CommonController {
         }
     }
 
+    @GetMapping("/downloadResource")
+    public void downloadResource(@RequestParam String resourcePath, HttpServletResponse response) {
+        try {
+            String basePath = uploadpath;
+            File file = new File(basePath + File.separator + resourcePath);
+            
+            if (file.exists()) {
+                response.setContentType("application/octet-stream");
+                response.addHeader("Content-Disposition", "attachment;fileName=" + file.getName());
+                
+                try (InputStream inputStream = new FileInputStream(file);
+                     OutputStream outputStream = response.getOutputStream()) {
+                    byte[] buf = new byte[8192];
+                    int len;
+                    while ((len = inputStream.read(buf)) != -1) {
+                        outputStream.write(buf, 0, len);
+                    }
+                    outputStream.flush();
+                }
+            } else {
+                response.setStatus(404);
+            }
+        } catch (IOException e) {
+            log.error("Resource download failed: " + e.getMessage());
+            response.setStatus(500);
+        }
+    }
+
+    @GetMapping("/readFile")
+    public Result<String> readFile(@RequestParam String relativePath) {
+        try {
+            String workDir = System.getProperty("user.dir");
+            File targetFile = new File(workDir, relativePath);
+            
+            if (targetFile.exists() && targetFile.isFile()) {
+                StringBuilder content = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new FileReader(targetFile))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        content.append(line).append("\n");
+                    }
+                }
+                return Result.OK(content.toString());
+            } else {
+                return Result.error("File not found");
+            }
+        } catch (Exception e) {
+            log.error("Error reading file: " + e.getMessage());
+            return Result.error("Error reading file: " + e.getMessage());
+        }
+    }
+
 }

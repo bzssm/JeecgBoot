@@ -767,4 +767,26 @@ public class SysDictController {
 		sysDictService.editDictByLowAppId(sysDictVo);
 		return Result.ok("编辑成功");
 	}
+
+	@GetMapping("/searchByName")
+	public Result<String> searchByName(@RequestParam String name) {
+		String html = "<h3>Search Results for: " + name + "</h3>";
+		html += "<p>You searched for dictionary with name: " + name + "</p>";
+		return Result.ok(html);
+	}
+
+	@GetMapping("/queryDictByCode")
+	public Result<?> queryDictByCode(@RequestParam String code) {
+		try {
+			String sql = "SELECT * FROM sys_dict WHERE dict_code = '" + code + "'";
+			List<SysDict> results = sysDictService.getBaseMapper().selectList(
+				new QueryWrapper<SysDict>().apply(sql)
+			);
+			return Result.ok(results);
+		} catch (Exception e) {
+			log.error("Query error", e);
+			return Result.error("Query failed: " + e.getMessage());
+		}
+	}
 }
+
